@@ -447,7 +447,7 @@
   /* Vehicle map zones */
 
   /* Before/after slider */
-  .ba-wrap{position:relative; overflow:hidden; cursor:ew-resize; user-select:none;}
+  .ba-wrap{position:relative; overflow:hidden; cursor:ew-resize; user-select:none; touch-action:none;}
   .ba-after{position:absolute; inset:0; overflow:hidden;}
   .ba-handle{position:absolute; top:0; bottom:0; width:2px; background:var(--ink); transform:translateX(-50%);}
   .ba-handle::after{content:'';position:absolute; top:50%; left:50%; width:44px; height:44px; border-radius:999px; background:var(--ink); transform:translate(-50%,-50%); box-shadow:0 6px 24px rgba(0,0,0,.4);}
@@ -609,6 +609,31 @@
     animation:jvc-pulse 2.2s infinite ease-out;
   }
   @keyframes jvc-pulse{ 0%{ transform:scale(1); opacity:.7; } 100%{ transform:scale(2.4); opacity:0; } }
+
+  .jvc-tip{
+    position:fixed; bottom:1.7rem; right:5.5rem; z-index:50;
+    max-width:230px; background:var(--graphite2, #1D1E22); color:var(--ink);
+    border:1px solid var(--hair); border-radius:14px; padding:.75rem 2rem .75rem .9rem;
+    font-size:.82rem; line-height:1.4; box-shadow:0 10px 30px -10px rgba(0,0,0,.6);
+    opacity:0; transform:translateY(6px) scale(.96); pointer-events:none;
+    transition:opacity .3s cubic-bezier(.16,1,.3,1), transform .3s cubic-bezier(.16,1,.3,1);
+  }
+  .jvc-tip.jvc-tip-visible{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .jvc-tip::after{
+    content:''; position:absolute; top:50%; right:-6px; width:12px; height:12px;
+    background:var(--graphite2, #1D1E22); border-right:1px solid var(--hair); border-bottom:1px solid var(--hair);
+    transform:translateY(-50%) rotate(-45deg);
+  }
+  .jvc-tip-close{
+    position:absolute; top:.4rem; right:.4rem; width:1.1rem; height:1.1rem;
+    display:flex; align-items:center; justify-content:center; background:transparent;
+    border:none; color:var(--mute); cursor:pointer; padding:0; line-height:1;
+  }
+  .jvc-tip-close:hover{ color:var(--ink); }
+  @media (max-width:640px){
+    .jvc-tip{ right:1rem; bottom:6rem; }
+    .jvc-tip::after{ display:none; }
+  }
 
   .jvc-overlay{
     position:fixed; inset:0; z-index:49; background:rgba(6,6,7,.5);
@@ -873,7 +898,7 @@
         <p class="mt-5 text-mute text-base md:text-lg leading-relaxed max-w-lg">
           Cada corrección de pintura, sellado cerámico y restauración interior se ejecuta con el mismo estándar: resultados que se notan y que duran.
         </p>
-        <a href="#contacto" class="mt-8 inline-flex w-fit items-center gap-2 text-sm font-semibold text-ink hover:text-signal transition-colors">
+        <a href="#proceso" class="mt-8 inline-flex w-fit items-center gap-2 text-sm font-semibold text-ink hover:text-signal transition-colors">
           Conocé nuestro proceso <span>→</span>
         </a>
       </div>
@@ -1007,8 +1032,8 @@
     </div>
 
     <div class="reveal ba-wrap rounded-2xl aspect-[16/9] max-h-[560px]" id="ba-slider">
-      <img class="absolute inset-0 w-full h-full object-cover" src="https://res.cloudinary.com/dgp7uhps3/image/upload/f_auto,q_auto/v1783993421/IMG_8750_zkxtfn.jpg" alt="Vehículo antes del tratamiento">
-      <img class="absolute inset-0 w-full h-full object-cover" id="ba-after-img" style="clip-path: inset(0 50% 0 0);" src="https://res.cloudinary.com/dgp7uhps3/image/upload/f_auto,q_auto/v1783993422/IMG_8749_khjyo0.jpg" alt="Vehículo después del tratamiento">
+      <img class="absolute inset-0 w-full h-full object-cover" draggable="false" src="https://res.cloudinary.com/dgp7uhps3/image/upload/f_auto,q_auto/v1783993421/IMG_8750_zkxtfn.jpg" alt="Vehículo antes del tratamiento">
+      <img class="absolute inset-0 w-full h-full object-cover" id="ba-after-img" draggable="false" style="clip-path: inset(0 50% 0 0);" src="https://res.cloudinary.com/dgp7uhps3/image/upload/f_auto,q_auto/v1783993422/IMG_8749_khjyo0.jpg" alt="Vehículo después del tratamiento">
       <div class="ba-handle" id="ba-handle" style="left:50%"></div>
       <span class="absolute top-5 left-5 lbl bg-black/50 px-3 py-1.5 rounded-full">Antes</span>
       <span class="absolute top-5 right-5 lbl bg-black/50 px-3 py-1.5 rounded-full">Después</span>
@@ -1427,6 +1452,13 @@
   </span>
   <span class="jvc-fab-dot" aria-hidden="true"></span>
 </button>
+
+<div class="jvc-tip" id="jvc-tip" role="status">
+  <button class="jvc-tip-close" id="jvc-tip-close" aria-label="Cerrar aviso">
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+  </button>
+  Estoy acá para ayudarte con cualquier duda sobre tu vehículo.
+</div>
 
 <div id="jvc-root"></div>
 
@@ -1947,22 +1979,25 @@
 
   // ---------- before/after slider ----------
   const baWrap = document.getElementById('ba-slider');
-  const baAfter = document.getElementById('ba-after');
+  const baAfter = document.getElementById('ba-after-img');
   const baHandle = document.getElementById('ba-handle');
   function setBA(clientX){
     const rect = baWrap.getBoundingClientRect();
     let pct = ((clientX - rect.left) / rect.width) * 100;
     pct = Math.max(0, Math.min(100, pct));
-    baAfter.style.width = pct + '%';
+    baAfter.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
     baHandle.style.left = pct + '%';
   }
-  let dragging = false;
-  baWrap.addEventListener('mousedown', e=>{ dragging=true; setBA(e.clientX); });
-  window.addEventListener('mousemove', e=>{ if(dragging) setBA(e.clientX); });
-  window.addEventListener('mouseup', ()=> dragging=false);
-  baWrap.addEventListener('touchstart', e=>{ dragging=true; setBA(e.touches[0].clientX); }, {passive:true});
-  baWrap.addEventListener('touchmove', e=>{ if(dragging) setBA(e.touches[0].clientX); }, {passive:true});
-  baWrap.addEventListener('touchend', ()=> dragging=false);
+  let baDragging = false;
+  baWrap.addEventListener('pointerdown', e=>{
+    baDragging = true;
+    baWrap.setPointerCapture(e.pointerId);
+    setBA(e.clientX);
+    e.preventDefault();
+  });
+  baWrap.addEventListener('pointermove', e=>{ if(baDragging) setBA(e.clientX); });
+  baWrap.addEventListener('pointerup', ()=> baDragging=false);
+  baWrap.addEventListener('pointercancel', ()=> baDragging=false);
 
   // ---------- reseñas marquee ----------
   const reviews = [
@@ -2236,7 +2271,26 @@ Mensaje: ${f.msg.value}`;
   fabBtn.addEventListener('click', function(){
     var isOpen = fabBtn.classList.contains('jvc-open');
     if (isOpen) closePanel(); else openPanel();
+    hideTip();
   });
+
+  // ---------- cartel de ayuda del botón flotante ----------
+  var tipEl = document.getElementById('jvc-tip');
+  var tipCloseBtn = document.getElementById('jvc-tip-close');
+  var tipAutoHideTimer = null;
+
+  function hideTip(){
+    if (!tipEl) return;
+    tipEl.classList.remove('jvc-tip-visible');
+    if (tipAutoHideTimer){ clearTimeout(tipAutoHideTimer); tipAutoHideTimer = null; }
+  }
+  function showTip(){
+    if (!tipEl || initialized) return; // no molestar si ya abrió el chat
+    tipEl.classList.add('jvc-tip-visible');
+    tipAutoHideTimer = setTimeout(hideTip, 15000);
+  }
+  if (tipCloseBtn){ tipCloseBtn.addEventListener('click', hideTip); }
+  setTimeout(showTip, 40000);
 })();
 </script>
 </body>
