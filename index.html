@@ -565,6 +565,7 @@
     .marquee-track{animation:none !important;}
     .hero-media{animation:none !important;}
     .scroll-cue-dot{animation:none !important;}
+    .jvc-fab, .jvc-fab::before{animation:none !important;}
   }
 
   input:focus-visible, button:focus-visible, a:focus-visible, textarea:focus-visible, select:focus-visible{
@@ -583,9 +584,35 @@
     overflow:hidden;
     box-shadow:0 10px 30px -10px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.15) inset;
     transition:transform .35s cubic-bezier(.16,1,.3,1), border-color .35s, box-shadow .35s;
-    animation:jvc-intro .6s cubic-bezier(.16,1,.3,1) .4s both;
+    animation:jvc-intro .6s cubic-bezier(.16,1,.3,1) .4s both, jvc-attract 4.2s ease-in-out 1.2s infinite;
+    will-change:transform;
   }
-  .jvc-fab:hover{ border-color:var(--signal); transform:translateY(-2px); box-shadow:0 14px 34px -10px rgba(217,30,54,.55); }
+  .jvc-fab:hover, .jvc-fab:focus-visible, .jvc-fab.jvc-open{ animation-play-state:paused, paused; }
+  .jvc-fab:hover{ border-color:var(--signal); transform:translateY(-2px) scale(1.04); box-shadow:0 14px 34px -10px rgba(217,30,54,.55); }
+  @keyframes jvc-attract{
+    0%{ transform:translateY(0) scale(1) rotate(0deg); }
+    5%{ transform:translateY(-8px) scale(1.08) rotate(-5deg); }
+    10%{ transform:translateY(0) scale(.96) rotate(4deg); }
+    15%{ transform:translateY(-4px) scale(1.04) rotate(-2deg); }
+    20%{ transform:translateY(0) scale(1) rotate(0deg); }
+    55%{ transform:translateY(0) scale(1.045) rotate(0deg); }
+    62%{ transform:translateY(0) scale(1) rotate(0deg); }
+    100%{ transform:translateY(0) scale(1) rotate(0deg); }
+  }
+  .jvc-fab::before{
+    content:''; position:absolute; inset:-1px; border-radius:999px;
+    box-shadow:0 0 0 0 rgba(217,30,54,.55); pointer-events:none;
+    animation:jvc-ring 4.2s ease-out 1.2s infinite;
+  }
+  .jvc-fab:hover::before, .jvc-fab.jvc-open::before{ animation-play-state:paused; }
+  @keyframes jvc-ring{
+    0%{ box-shadow:0 0 0 0 rgba(217,30,54,.55); }
+    5%{ box-shadow:0 0 0 4px rgba(217,30,54,.4); }
+    20%{ box-shadow:0 0 0 18px rgba(217,30,54,0); }
+    55%{ box-shadow:0 0 0 0 rgba(217,30,54,.3); }
+    62%{ box-shadow:0 0 0 10px rgba(217,30,54,0); }
+    100%{ box-shadow:0 0 0 0 rgba(217,30,54,0); }
+  }
   .jvc-fab-logo{
     width:100%; height:100%; object-fit:cover; border-radius:999px;
     transition:opacity .25s, transform .25s;
