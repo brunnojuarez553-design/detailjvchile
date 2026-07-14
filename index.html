@@ -13,6 +13,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Preconexión al host de video/imágenes: acelera DNS+TLS antes de llegar al <video>. -->
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+<!-- Precarga el video del hero para que arranque a reproducirse apenas termina de cargar,
+     en vez de esperar a que el parser HTML llegue hasta el <video>. -->
+<link rel="preload" as="fetch" type="video/mp4" href="https://res.cloudinary.com/dgp7uhps3/video/upload/f_auto,q_auto,ar_16:9,c_fill,g_center/v1783997950/insta_video_22545_mzynbp.mp4" crossorigin>
 <style>
   /* ======================================================================
      Utilidades CSS propias (reemplaza Tailwind CDN — no apto para producción).
@@ -84,6 +87,7 @@
   .left-5{left:1.25rem;}
   .right-5{right:1.25rem;} .right-6{right:1.5rem;}
   .bottom-6{bottom:1.5rem;}
+  .bottom-24{bottom:6rem;}
   .z-10{z-index:10;} .z-50{z-index:50;}
 
   /* Grid columns */
@@ -262,7 +266,7 @@
     --void:#0A0A0B; --graphite:#151519; --graphite2:#1D1E22; --steel:#2A2B30;
     --hair:#303136; --ink:#FAFAF8; --mute:#8E8F96; --signal:#D91E36;
   }
-  html{scroll-behavior:smooth;}
+  html{scroll-behavior:smooth; overflow-x:hidden; max-width:100%;}
   body{background:var(--void); color:var(--ink); font-family:'Inter',sans-serif; overflow-x:hidden;}
   ::selection{background:rgba(217,30,54,.35); color:var(--ink);}
   ::-moz-selection{background:rgba(217,30,54,.35); color:var(--ink);}
@@ -522,7 +526,8 @@
   summary{cursor:pointer; list-style:none;}
 
   /* Marquee reviews */
-  .marquee-track{display:flex; gap:1.5rem; animation:marquee 42s linear infinite;}
+  .marquee-wrap{overflow:hidden; max-width:100%;}
+  .marquee-track{display:flex; gap:1.5rem; animation:marquee 42s linear infinite; width:max-content;}
   @keyframes marquee{from{transform:translateX(0);} to{transform:translateX(-50%);}}
   .marquee-wrap:hover .marquee-track{animation-play-state:paused;}
 
@@ -771,7 +776,7 @@
 </div>
 
 <!-- ============ HERO ============ -->
-<section id="top" class="relative h-[100svh] min-h-[640px] w-full flex items-end">
+<section id="top" class="relative h-[100svh] min-h-[640px] w-full flex items-end" style="padding-top:96px; box-sizing:border-box;">
   <!-- Video hero: insta_video_22545 (cuenta Cloudinary dgp7uhps3).
        Nota: se evita g_auto en el video (recorte por contenido) porque esa transformación
        requiere un add-on de análisis de contenido que muchas cuentas no tienen habilitado,
@@ -839,7 +844,7 @@
     </div>
   </div>
 
-  <div class="absolute bottom-6 right-6 md:right-10 reveal">
+  <div class="absolute bottom-24 right-6 md:right-10 reveal">
     <div class="scroll-cue">
       <span class="lbl" style="writing-mode:vertical-rl; letter-spacing:.2em;">Scroll</span>
       <span class="scroll-cue-track"><span class="scroll-cue-dot"></span></span>
@@ -1564,12 +1569,32 @@
     const MAX_PHOTOS = 4;
     let files = [];
 
+    // Redimensiona y comprime la imagen antes de convertirla a base64.
+    // Groq limita las requests con imágenes en base64 a 4MB en total, y las fotos
+    // de celular sin comprimir (varios MB cada una) lo superan fácilmente y tiran error.
     function fileToBase64(file){
       return new Promise((resolve, reject)=>{
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.onerror = reject;
-        r.readAsDataURL(file);
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = () => { img.onload = () => {
+          const MAX_DIM = 1280;
+          let { width, height } = img;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            const scale = MAX_DIM / Math.max(width, height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
     }
 
