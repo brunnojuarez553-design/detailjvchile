@@ -6,6 +6,15 @@
 // (Project Settings → Environment Variables). Nunca expongas esta key en el frontend.
 // Usa un nombre distinto al de la key del chat (ej. GROQ_API_KEY_CHAT) para que
 // cada endpoint tenga su propia key de Groq, con límites y uso independientes.
+//
+// Modelo: qwen/qwen3.6-27b (modelo de visión vigente en Groq a jul-2026).
+// OJO: llama-3.2-11b-vision-preview fue DADO DE BAJA por Groq — si en el futuro este
+// endpoint vuelve a fallar, revisá https://console.groq.com/docs/deprecations por si
+// hay que migrar el modelo de nuevo.
+//
+// Límite de Groq para imágenes en base64: 4MB por request y máximo 5 imágenes.
+// Por eso el frontend (site213.html) redimensiona/comprime las fotos antes de
+// mandarlas acá — si edita ese código, no saque esa parte o va a tirar error 413.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -30,7 +39,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY_INSPECCION}`
       },
       body: JSON.stringify({
-        model: 'llama-3.2-11b-vision-preview',
+        model: 'qwen/qwen3.6-27b',
         temperature: 0.3,
         max_tokens: 700,
         response_format: { type: 'json_object' },
